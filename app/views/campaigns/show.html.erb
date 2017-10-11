@@ -1,0 +1,6 @@
+<%= link_to "Campaigns list" , campaigns_path %>
+<div style="padding:10px">
+  <% @users.each do |user| %>
+    <div><%= user.name %> | count: <%= user.count %> </div>
+  <% end %>
+</div>

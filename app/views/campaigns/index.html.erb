@@ -1,0 +1,6 @@
+<p> List of all campaigns, click to list its contestents </p>
+<ul>
+  <% @campaigns.each do |campaign| %>
+    <li> <%= link_to campaign.name, campaign_path(id: campaign.id) %> </li>
+  <% end %>
+</ul>
