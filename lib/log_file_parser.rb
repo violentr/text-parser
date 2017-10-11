@@ -1,14 +1,20 @@
+#!/usr/bin/env ruby
+
+require './lib/populate_db'
+
 class LogFileParser
   attr_reader :file
 
+  DEFAULT_FILE = Rails.root.join('lib', 'votes.txt')
+
   def initialize(file)
-    @file = File.open(file)
+    file_path = ARGV.first || DEFAULT_FILE
+    @file = File.open(file_path)
     @campaigns = {"Campaign" => {}}
     @errors = {errors: 0}
   end
 
   def parse
-    return "File must exist" unless File.exists?(file)
     file.readlines.each do |line|
       line = validate(line)
       next unless policy_matched(line)
@@ -20,6 +26,10 @@ class LogFileParser
       end
     end
     @campaigns
+  end
+
+  def populate_db
+    ::PopulateDb.start(@campaigns)
   end
 
   def policy_matched(string)
@@ -36,12 +46,12 @@ class LogFileParser
     output = text.each_with_object([]) do |i, array|
       array << i.split(/:/) if i.match(/:/)
     end
-    OpenStruct.new(output.to_h)
+    ::OpenStruct.new(output.to_h)
   end
 
   def allready_voted_for(record)
     choice = @campaigns.dig("Campaign", record.Campaign, "Choice")
-    if choice.has_key?(record.Choice) && record.Choice.present?
+    if choice.has_key?(record.Choice) && record.Choice
       @campaigns["Campaign"][record.Campaign]["Choice"][record.Choice] += 1
     else
       @campaigns["Campaign"][record.Campaign]["Choice"].merge!({record.Choice => 1 })
@@ -49,7 +59,7 @@ class LogFileParser
   end
 
   def start_to_vote(record)
-    if record.Choice.present?
+    if record.Choice
       @campaigns["Campaign"].merge!({record.Campaign => {"Choice" => {}} })
       @campaigns["Campaign"][record.Campaign]["Choice"][record.Choice] = 1
     else
@@ -65,7 +75,6 @@ class LogFileParser
   private
 
   def validate(string)
-
     if string.valid_encoding?
       return string
     else
@@ -76,3 +85,7 @@ class LogFileParser
   end
 
 end
+
+logfile_parser = LogFileParser.new(ARGV.first)
+logfile_parser.parse
+logfile_parser.populate_db
